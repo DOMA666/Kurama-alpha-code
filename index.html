@@ -26,7 +26,7 @@
             overflow: hidden;
         }
 
-        /* Menu latéral style ChatGPT (masqué sur petit mobile pour l'ergonomie) */
+        /* Menu latéral style ChatGPT */
         .sidebar {
             width: 260px;
             background-color: var(--bg-sidebar);
@@ -204,6 +204,9 @@
 
     <script>
         const HUGGING_FACE_URL = "https://domy3-kurama-alpha-code.hf.space";
+        
+        // Structure de mémoire pour l'historique
+        let historiqueMessages = [];
 
         function autoResize(textarea) {
             textarea.style.height = 'auto';
@@ -225,19 +228,30 @@
                     </div>
                 </div>`;
             
+            // Enregistrement dans l'historique local
+            historiqueMessages.push({ role: "user", content: text });
+
             input.value = '';
             input.style.height = '24px';
             chat.scrollTop = chat.scrollHeight;
 
             try {
-                const response = await fetch(`${HUGGING_FACE_URL}/api/generate`, {
+                // Utilisation de l'API /api/chat pour envoyer TOUTE la conversation
+                const response = await fetch(`${HUGGING_FACE_URL}/api/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: 'alpha-code', prompt: text, stream: false })
+                    body: JSON.stringify({ 
+                        model: 'alpha-code', 
+                        messages: historiqueMessages, 
+                        stream: false 
+                    })
                 });
                 
                 const data = await response.json();
-                let reply = data.response;
+                let reply = data.message.content;
+                
+                // Enregistrement de la réponse de Kurama dans l'historique
+                historiqueMessages.push({ role: "assistant", content: reply });
                 
                 // Extraction et nettoyage du GIF
                 const urlRegex = /(https?:\/\/[^\s)]+\.gif)/g;
@@ -250,7 +264,7 @@
                     gifHtml = `<img src="${gifUrl}" class="kurama-img" alt="humeur">`;
                 }
 
-                // Formatage des blocs de code basiques
+                // Formatage des blocs de code
                 reply = reply.replace(/```([a-z]*)\n([\s\S]*?)\n```/g, '<pre><code>$2</code></pre>');
 
                 chat.innerHTML += `
@@ -266,7 +280,7 @@
                     <div class="message-row kurama-row">
                         <div class="message-content">
                             <div class="avatar">S</div>
-                            <div class="text" style="color:red;">[Erreur système : Le sceau rejette la connexion]</div>
+                            <div class="text" style="color:red;">[Erreur système : Échec de la liaison avec le démon]</div>
                         </div>
                     </div>`;
             }
