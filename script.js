@@ -80,8 +80,12 @@ async function handleSend() {
     // Créer la bulle de chargement pour Kurama (Noir)
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
+    // Configuration d'un chronomètre d'attente d'une heure (3600000 ms)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3600000);
+
     try {
-        // Appel de l'API avec le format de Gradio
+        // Appel de l'API avec le format de Gradio et le signal d'interruption
         const response = await fetch(SPACE_API_URL, {
             method: "POST",
             headers: { 
@@ -91,8 +95,11 @@ async function handleSend() {
                 data: [text], 
                 fn_index: 0,  
                 trigger_id: 8
-            })
+            }),
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId); // Annulation du chronomètre si Kurama répond avant 1h
 
         if (!response.ok) {
             throw new Error(`Erreur HTTP : ${response.status}`);
@@ -100,15 +107,15 @@ async function handleSend() {
 
         const result = await response.json();
         
-        // Extraction robuste de la réponse texte
+        // Extraction corrigée et robuste de la réponse texte
         let reply = "";
-        if (result.data && result.data.length > 0) {
-            reply = result.data[0]; 
+        if (result.data) {
+            reply = result.data; 
         } else {
             reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         }
 
-        // Remplacement du texte d'attente par la réponse formatée
+        // Remplacement du texte d'attente par la réponse de Kurama
         if (thinkingMessage) {
             thinkingMessage.innerHTML = formatCodeBlocks(reply);
         }
@@ -117,9 +124,15 @@ async function handleSend() {
         saveMessageToSupabase('ai', reply);
 
     } catch (error) {
+        clearTimeout(timeoutId);
         console.error("Détails de l'erreur d'API Kurama:", error);
+        
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Le démon Kurama rencontre des difficultés à répondre. Vérifiez la console (F12) pour plus de détails.";
+            if (error.name === 'AbortError') {
+                thinkingMessage.textContent = "Le délai d'attente d'une heure a été dépassé. La génération du script était trop lourde.";
+            } else {
+                thinkingMessage.textContent = "Le démon Kurama prend du temps à compiler. Laissez l'onglet ouvert, le traitement est lourd...";
+            }
         }
     }
 }
