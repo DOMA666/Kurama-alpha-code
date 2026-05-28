@@ -1,7 +1,7 @@
-// Déclaration de l'adresse de base du Space
-const SPACE_BASE_URL = "https://domy3-kurama-alpha-code.hf.space";
+// Adresse de base de ton Space Docker qui héberge Ollama
+const OLLAMA_API_URL = "https://domy3-kurama-alpha-code.hf.space";
 
-// Gestion de l'affichage du menu d'historique
+// Gestion de l'affichage du menu d'historique (Sidebar)
 const sidebar = document.getElementById('sidebar');
 const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -78,7 +78,7 @@ function setupCopyButtons(container) {
     });
 }
 
-// Gestion et traitement de l'envoi du message
+// Gestion et traitement de l'envoi du message vers Ollama
 async function handleSend() {
     if (!userInput) return;
     const text = userInput.value.trim();
@@ -93,38 +93,27 @@ async function handleSend() {
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
     try {
-        // ÉTAPE 1 : Initialisation de l'événement sur la route Gradio moderne
-        const initiateResponse = await fetch(`${SPACE_BASE_URL}/call/predict`, {
+        // Envoi de la requête au format d'API natif d'Ollama
+        const response = await fetch(OLLAMA_API_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ data: [text] })
+            headers: { 
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "kurama", // C'est le nom configuré via ton Modelfile
+                prompt: text,
+                stream: false     // On désactive le stream pour récupérer le bloc de texte complet d'un coup
+            })
         });
 
-        if (!initiateResponse.ok) throw new Error(`Init Failed: ${initiateResponse.status}`);
+        if (!response.ok) throw new Error(`Ollama Error: ${response.status}`);
         
-        const initData = await initiateResponse.json();
-        const eventId = initData.event_id; // Récupère le jeton de la file d'attente
-
-        if (!eventId) {
-            throw new Error("Impossible de s'aligner sur la file d'attente Gradio.");
-        }
-
-        // ÉTAPE 2 : Lecture en continu (SSE) ou récupération du résultat final
-        const resultResponse = await fetch(`${SPACE_BASE_URL}/call/predict/${eventId}`);
-        if (!resultResponse.ok) throw new Error(`Fetch Result Failed: ${resultResponse.status}`);
+        const result = await response.json();
         
-        const resultText = await resultResponse.text();
-        
-        // Extraction du texte de la réponse Gradio
+        // Dans Ollama, la réponse brute se trouve dans le champ 'response'
         let reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
-        const lines = resultText.split('\n');
-        for (let line of lines) {
-            if (line.startsWith('data:')) {
-                const jsonData = JSON.parse(line.replace('data:', '').trim());
-                if (jsonData && jsonData.length > 0) {
-                    reply = jsonData[0];
-                }
-            }
+        if (result && result.response) {
+            reply = result.response;
         }
 
         if (thinkingMessage) {
@@ -137,7 +126,7 @@ async function handleSend() {
     } catch (error) {
         console.error(error);
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Le démon Kurama rencontre une anomalie d'alignement d'API. Vérifiez la structure de votre script Hugging Face.";
+            thinkingMessage.textContent = "Le démon Kurama est en cours de traitement. Laissez l'onglet ouvert, le calcul CPU d'Ollama démarre...";
         }
     }
 }
