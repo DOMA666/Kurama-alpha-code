@@ -1,7 +1,7 @@
-// Remplacez la ligne 2 de votre script.js par celle-ci :
+// 1. Déclaration de ton lien avec le proxy réseau pour atteindre directement Ollama sur le port 11434
 const OLLAMA_API_URL = "https://hf.space";
 
-// Gestion de l'affichage du menu d'historique (Sidebar)
+// 2. Gestion de l'affichage du menu d'historique (Sidebar)
 const sidebar = document.getElementById('sidebar');
 const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -13,7 +13,7 @@ if (closeSidebarBtn && sidebar) {
     closeSidebarBtn.addEventListener('click', function() { sidebar.classList.remove('open'); });
 }
 
-// Redimensionnement automatique de la zone d'écriture
+// 3. Ajustement automatique de la hauteur du champ de texte
 const userInput = document.getElementById('user-input');
 if (userInput) {
     userInput.addEventListener('input', function() {
@@ -22,7 +22,7 @@ if (userInput) {
     });
 }
 
-// Injection des bulles de messages dans la boîte de dialogue
+// 4. Injection des bulles de messages (Gestion Rouge pour Toi / Noir pour Kurama)
 function appendMessage(sender, text) {
     const chatBox = document.getElementById('chat-box');
     if (!chatBox) return null;
@@ -31,7 +31,10 @@ function appendMessage(sender, text) {
     messageDiv.classList.add('message', sender);
 
     if (sender === 'ai') {
-        messageDiv.innerHTML = formatCodeBlocks(text);
+        // Applique les blocs de code d'abord, puis transforme le markdown des images (![alt](url)) en vrais GIFs
+        let formattedText = formatCodeBlocks(text);
+        formattedText = formatMarkdownImages(formattedText);
+        messageDiv.innerHTML = formattedText;
         setupCopyButtons(messageDiv);
     } else {
         messageDiv.textContent = text;
@@ -42,7 +45,13 @@ function appendMessage(sender, text) {
     return messageDiv;
 }
 
-// Détection et mise en forme propre des réponses contenant du code (Markdown)
+// 5. Transformation du Markdown de Tenor en vraies images HTML affichables
+function formatMarkdownImages(text) {
+    const imgRegex = /!\[.*?\]\((.*?)\)/g;
+    return text.replace(imgRegex, '<br><img src="$1" style="max-width:100%; border-radius:12px; margin-top:10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" alt="Kurama GIF">');
+}
+
+// 6. Nettoyage et encadrement des blocs de scripts (Qwen)
 function formatCodeBlocks(text) {
     if (!text) return "";
     const regex = /```(\w*)\n([\s\S]*?)```/g;
@@ -78,46 +87,46 @@ function setupCopyButtons(container) {
     });
 }
 
-// Gestion et traitement de l'envoi du message vers Ollama
+// 7. Envoi du prompt vers l'API Ollama du conteneur
 async function handleSend() {
     if (!userInput) return;
     const text = userInput.value.trim();
     if (!text) return;
 
+    // Affiche ton message instantanément (Bulle Rouge)
     appendMessage('user', text);
     saveMessageToSupabase('user', text); 
 
     userInput.value = '';
     userInput.style.height = 'auto';
 
+    // Crée la bulle d'attente (Bulle Noire)
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
     try {
-        // Envoi de la requête au format d'API natif d'Ollama
         const response = await fetch(OLLAMA_API_URL, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "kurama", // C'est le nom configuré via ton Modelfile
+                model: "alpha-code", // Ton modèle compilé dans ton entrypoint.sh
                 prompt: text,
-                stream: false     // On désactive le stream pour récupérer le bloc de texte complet d'un coup
+                stream: false
             })
         });
 
-        if (!response.ok) throw new Error(`Ollama Error: ${response.status}`);
+        if (!response.ok) throw new Error(`Erreur Réseau Ollama: ${response.status}`);
         
         const result = await response.json();
         
-        // Dans Ollama, la réponse brute se trouve dans le champ 'response'
         let reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         if (result && result.response) {
             reply = result.response;
         }
 
         if (thinkingMessage) {
-            thinkingMessage.innerHTML = formatCodeBlocks(reply);
+            thinkingMessage.innerHTML = formatMarkdownImages(formatCodeBlocks(reply));
             setupCopyButtons(thinkingMessage);
         }
         
@@ -126,12 +135,12 @@ async function handleSend() {
     } catch (error) {
         console.error(error);
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Le démon Kurama est en cours de traitement. Laissez l'onglet ouvert, le calcul CPU d'Ollama démarre...";
+            thinkingMessage.textContent = "Le démon Kurama prend du temps à compiler. Laissez l'onglet ouvert, le calcul démarre...";
         }
     }
 }
 
-// Écouteurs d'événements pour le bouton
+// 8. Activation des écouteurs du bouton
 const sendBtn = document.getElementById('send-btn');
 if (sendBtn) {
     sendBtn.addEventListener('click', function(e) {
@@ -149,7 +158,7 @@ if (userInput) {
     });
 }
 
-// Sauvegarde Supabase
+// 9. Sauvegarde dans ta base de données Supabase
 async function saveMessageToSupabase(sender, message) {
     try {
         await fetch("/api/history", {
@@ -158,6 +167,6 @@ async function saveMessageToSupabase(sender, message) {
             body: JSON.stringify({ sender: sender, message: message })
         });
     } catch (e) {
-        console.log("Supabase en attente.");
+        console.log("Sauvegarde en attente.");
     }
 }
