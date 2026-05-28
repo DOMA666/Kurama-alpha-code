@@ -1,5 +1,5 @@
-// Adresse de base de ton Space Docker qui héberge Ollama
-const OLLAMA_API_URL = "https://domy3-kurama-alpha-code.hf.space";
+// Remplacez la ligne 2 de votre script.js par celle-ci :
+const OLLAMA_API_URL = "https://hf.space";
 
 // Gestion de l'affichage du menu d'historique (Sidebar)
 const sidebar = document.getElementById('sidebar');
