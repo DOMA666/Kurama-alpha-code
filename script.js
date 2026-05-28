@@ -1,5 +1,5 @@
-// 1. Déclaration unique de l'adresse de votre Space Hugging Face
-const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space/run/predict";
+// 1. Déclaration de l'adresse API publique officielle pour forcer le réveil de votre Space Kurama
+const SPACE_API_URL = "https://hf.space";
 
 // 2. Gestion de l'affichage du menu d'historique
 const sidebar = document.getElementById('sidebar');
@@ -60,6 +60,7 @@ function formatCodeBlocks(text) {
     });
 }
 
+// Nettoyage du texte et échappement HTML pour la sécurité des balises
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -92,9 +93,7 @@ async function handleSend() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                data: [text], 
-                fn_index: 0,  
-                trigger_id: 8
+                data: [text]
             }),
             signal: controller.signal
         });
@@ -109,8 +108,8 @@ async function handleSend() {
         
         // Extraction corrigée et robuste de la réponse texte
         let reply = "";
-        if (result.data) {
-            reply = result.data; 
+        if (result.data && result.data.length > 0) {
+            reply = result.data[0]; 
         } else {
             reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         }
