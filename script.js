@@ -61,43 +61,63 @@ userInput.addEventListener('keydown', (e) => {
     }
 });
 
-// Traitement de l'envoi du message et appel API
+// Assurez-vous que l'URL en haut de votre script.js ressemble exactement à ceci :
+const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space/run/predict";
+
 async function handleSend() {
     const text = userInput.value.trim();
     if (!text) return;
 
-    // Affiche le message de l'utilisateur instantanément
+    // 1. Afficher et sauvegarder le message de l'utilisateur (Rouge)
     appendMessage('user', text);
+    if (typeof saveMessageToSupabase === "function") {
+        saveMessageToSupabase('user', text); 
+    }
+
     userInput.value = '';
     userInput.style.height = 'auto';
 
-    // Crée la bulle de chargement sombre pour Kurama
+    // 2. Créer la bulle de chargement pour Kurama (Noir)
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
     try {
-        // Transmission de la donnée au Space Hugging Face
+        // 3. Appel de l'API avec le nouveau format strict de Gradio
         const response = await fetch(SPACE_API_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({
-                data: [text] 
+                data: [text], // Votre message texte envoyé à Qwen
+                fn_index: 0,  // Indique à Gradio d'utiliser la fonction principale du chatbot
+                trigger_id: 8
             })
         });
 
-        const result = await response.json();
-        
-        // Extraction de la chaîne de texte générée par Qwen
-        let reply = "Désolé, Kurama n'a pas pu traiter cette demande.";
-        if (result.data && result.data[0]) {
-            reply = result.data[0];
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP : ${response.status}`);
         }
 
-        // Remplacement du texte d'attente par la réponse formatée
+        const result = await response.json();
+        
+        // 4. Extraction robuste de la réponse texte
+        let reply = "";
+        if (result.data && result.data.length > 0) {
+            reply = result.data[0]; // Récupère le premier élément du tableau de réponse
+        } else {
+            reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
+        }
+
+        // 5. Remplacement du texte d'attente par la réponse formatée en blocs de code
         thinkingMessage.innerHTML = formatCodeBlocks(reply);
+        
+        // 6. Sauvegarder la réponse finale dans Supabase
+        if (typeof saveMessageToSupabase === "function") {
+            saveMessageToSupabase('ai', reply);
+        }
 
     } catch (error) {
-        console.error("Erreur de communication API:", error);
-        thinkingMessage.textContent = "Le démon Kurama est inaccessible. Vérifiez le statut de votre Space.";
+        console.error("Détails de l'erreur d'API Kurama:", error);
+        thinkingMessage.textContent = "Le démon Kurama rencontre des difficultés à répondre. Vérifiez la console (F12) pour plus de détails.";
     }
 }
-
