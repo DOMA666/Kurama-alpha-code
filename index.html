@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kurama AI</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Version stable de FontAwesome -->
+    <!-- Icônes pour le menu -->
     <link rel="stylesheet" href="https://cloudflare.com">
+    <!-- Chargement global et ultra-rapide du connecteur Gradio officiel -->
+    <script src="https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js"></script>
 </head>
 <body>
 
@@ -36,13 +38,13 @@
         <footer class="chat-footer">
             <div class="input-area">
                 <textarea id="user-input" placeholder="Posez votre question de codage à Kurama..." rows="1"></textarea>
-                <!-- Bouton d'envoi simplifié au maximum -->
+                <!-- Bouton d'envoi classique et robuste -->
                 <button id="send-btn" type="button">➤</button>
             </div>
         </footer>
     </div>
 
-    <!-- Chargement en tant que module obligatoire -->
-    <script type="module" src="script.js"></script>
+    <!-- Retour au format de script standard pour éviter les blocages stricts -->
+    <script src="script.js"></script>
 </body>
 </html>
