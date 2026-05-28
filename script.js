@@ -1,7 +1,7 @@
-// 1. Ton URL brute en déclaration unique
-const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space";
+// Déclaration de l'adresse de base du Space
+const SPACE_BASE_URL = "https://domy3-kurama-alpha-code.hf.space";
 
-// 2. Gestion du menu d'historique (Sidebar)
+// Gestion de l'affichage du menu d'historique
 const sidebar = document.getElementById('sidebar');
 const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -13,7 +13,7 @@ if (closeSidebarBtn && sidebar) {
     closeSidebarBtn.addEventListener('click', function() { sidebar.classList.remove('open'); });
 }
 
-// 3. Zone d'écriture automatique
+// Redimensionnement automatique de la zone d'écriture
 const userInput = document.getElementById('user-input');
 if (userInput) {
     userInput.addEventListener('input', function() {
@@ -22,7 +22,7 @@ if (userInput) {
     });
 }
 
-// 4. Affichage des messages à l'écran
+// Injection des bulles de messages dans la boîte de dialogue
 function appendMessage(sender, text) {
     const chatBox = document.getElementById('chat-box');
     if (!chatBox) return null;
@@ -42,7 +42,7 @@ function appendMessage(sender, text) {
     return messageDiv;
 }
 
-// 5. Formatage des blocs de code
+// Détection et mise en forme propre des réponses contenant du code (Markdown)
 function formatCodeBlocks(text) {
     if (!text) return "";
     const regex = /```(\w*)\n([\s\S]*?)```/g;
@@ -78,7 +78,7 @@ function setupCopyButtons(container) {
     });
 }
 
-// 6. Envoi direct via Fetch à ton URL (Attente d'une heure activée)
+// Gestion et traitement de l'envoi du message
 async function handleSend() {
     if (!userInput) return;
     const text = userInput.value.trim();
@@ -92,30 +92,39 @@ async function handleSend() {
 
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3600000); // 1 heure
-
     try {
-        const response = await fetch(SPACE_API_URL, {
+        // ÉTAPE 1 : Initialisation de l'événement sur la route Gradio moderne
+        const initiateResponse = await fetch(`${SPACE_BASE_URL}/call/predict`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                data: [text],
-                fn_index: 0,
-                trigger_id: 8
-            }),
-            signal: controller.signal
+            body: JSON.stringify({ data: [text] })
         });
 
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error(`Status: ${response.status}`);
-
-        const result = await response.json();
+        if (!initiateResponse.ok) throw new Error(`Init Failed: ${initiateResponse.status}`);
         
+        const initData = await initiateResponse.json();
+        const eventId = initData.event_id; // Récupère le jeton de la file d'attente
+
+        if (!eventId) {
+            throw new Error("Impossible de s'aligner sur la file d'attente Gradio.");
+        }
+
+        // ÉTAPE 2 : Lecture en continu (SSE) ou récupération du résultat final
+        const resultResponse = await fetch(`${SPACE_BASE_URL}/call/predict/${eventId}`);
+        if (!resultResponse.ok) throw new Error(`Fetch Result Failed: ${resultResponse.status}`);
+        
+        const resultText = await resultResponse.text();
+        
+        // Extraction du texte de la réponse Gradio
         let reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
-        if (result && result.data && result.data.length > 0) {
-            reply = result.data[0]; 
+        const lines = resultText.split('\n');
+        for (let line of lines) {
+            if (line.startsWith('data:')) {
+                const jsonData = JSON.parse(line.replace('data:', '').trim());
+                if (jsonData && jsonData.length > 0) {
+                    reply = jsonData[0];
+                }
+            }
         }
 
         if (thinkingMessage) {
@@ -126,15 +135,14 @@ async function handleSend() {
         saveMessageToSupabase('ai', reply);
 
     } catch (error) {
-        clearTimeout(timeoutId);
         console.error(error);
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Le démon Kurama met du temps à compiler. Laissez l'onglet ouvert, le traitement est lourd...";
+            thinkingMessage.textContent = "Le démon Kurama rencontre une anomalie d'alignement d'API. Vérifiez la structure de votre script Hugging Face.";
         }
     }
 }
 
-// 7. Écouteurs d'événements pour ton bouton
+// Écouteurs d'événements pour le bouton
 const sendBtn = document.getElementById('send-btn');
 if (sendBtn) {
     sendBtn.addEventListener('click', function(e) {
@@ -152,7 +160,7 @@ if (userInput) {
     });
 }
 
-// 8. Sauvegarde Supabase
+// Sauvegarde Supabase
 async function saveMessageToSupabase(sender, message) {
     try {
         await fetch("/api/history", {
