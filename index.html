@@ -3,293 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kurama GPT</title>
-    <style>
-        :root {
-            --bg-main: #212121;
-            --bg-sidebar: #171717;
-            --bg-msg-user: #2f2f2f;
-            --bg-msg-kurama: transparent;
-            --text-main: #eceecf;
-            --accent-orange: #ff4500;
-            --accent-red: #8b0000;
-            --code-bg: #000000;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Menu latéral style ChatGPT */
-        .sidebar {
-            width: 260px;
-            background-color: var(--bg-sidebar);
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            border-right: 1px solid #333;
-        }
-        .new-chat-btn {
-            border: 1px solid #4f4f4f;
-            background: transparent;
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: left;
-            font-size: 14px;
-        }
-
-        /* Zone Principale */
-        .main-chat {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            position: relative;
-        }
-
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Lignes de messages style ChatGPT */
-        .message-row {
-            width: 100%;
-            padding: 24px 20px;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-        }
-        .message-row.user-row {
-            background-color: var(--bg-main);
-        }
-        .message-row.kurama-row {
-            background-color: #2f2f2f40;
-            border-top: 1px solid #333;
-            border-bottom: 1px solid #333;
-        }
-
-        .message-content {
-            max-width: 768px;
-            width: 100%;
-            display: flex;
-            gap: 20px;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-        .user-row .avatar { background: #5436da; color: white; }
-        .kurama-row .avatar { background: var(--accent-red); color: var(--accent-orange); border: 1px solid var(--accent-orange); }
-
-        .text {
-            flex: 1;
-            white-space: pre-wrap;
-        }
-
-        /* Éléments spéciaux Kurama */
-        .kurama-img {
-            max-width: 100%;
-            max-height: 200px;
-            display: block;
-            margin-top: 15px;
-            border-radius: 6px;
-            border: 1px solid var(--accent-red);
-        }
-
-        pre {
-            background-color: var(--code-bg);
-            padding: 15px;
-            border-radius: 6px;
-            overflow-x: auto;
-            border: 1px solid #333;
-        }
-        code { font-family: "Fira Code", Monaco, Consolas, monospace; color: #00ff66; font-size: 14px; }
-
-        /* Zone de saisie flottante */
-        .input-container {
-            width: 100%;
-            max-width: 768px;
-            margin: 0 auto;
-            padding: 0 20px 24px 20px;
-            box-sizing: border-box;
-            background: linear-gradient(transparent, var(--bg-main) 20%);
-        }
-
-        .input-box {
-            display: flex;
-            background-color: #2f2f2f;
-            border: 1px solid #4f4f4f;
-            border-radius: 12px;
-            padding: 10px;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        textarea {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: white;
-            resize: none;
-            font-size: 16px;
-            font-family: inherit;
-            outline: none;
-            max-height: 200px;
-            height: 24px;
-        }
-
-        .send-btn {
-            background-color: var(--accent-red);
-            color: white;
-            border: 1px solid var(--accent-orange);
-            border-radius: 8px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .send-btn:hover { background-color: var(--accent-orange); }
-
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-        }
-    </style>
+    <title>Kurama AI</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chargement correct des icônes pour les boutons -->
+    <link rel="stylesheet" href="https://cloudflare.com">
 </head>
 <body>
 
-    <div class="sidebar">
-        <button class="new-chat-btn" onclick="window.location.reload()">+ Nouvelle discussion</button>
-    </div>
-
-    <div class="main-chat">
-        <div class="chat-container" id="chat">
-            <div class="message-row kurama-row">
-                <div class="message-content">
-                    <div class="avatar">K</div>
-                    <div class="text">Humain... Tu oses déranger mon sommeil ? Qui t'a permis de m'adresser la parole ?</div>
-                </div>
-            </div>
+    <!-- Menu latéral déroulant (Historique) -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fa-solid fa-scroll"></i> Historique</h3>
+            <button id="close-sidebar" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
-        <div class="input-container">
-            <div class="input-box">
-                <textarea id="msgInput" placeholder="Envoyer un message à Kurama..." oninput="autoResize(this)"></textarea>
-                <button class="send-btn" onclick="envoyer()">↵</button>
-            </div>
+        <div id="history-list" class="history-list">
+            <!-- Les sessions Supabase chargeront ici -->
         </div>
     </div>
 
-    <script>
-        const HUGGING_FACE_URL = "https://domy3-kurama-alpha-code.hf.space";
-        
-        // Structure de mémoire pour l'historique
-        let historiqueMessages = [];
+    <!-- Interface principale du Chat -->
+    <div class="chat-container">
+        <header class="chat-header">
+            <button id="open-sidebar" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+            <h1>Kurama <span class="badge">Qwen Uncensored</span></h1>
+            <button id="new-chat" class="icon-btn"><i class="fa-solid fa-pen-to-square"></i></button>
+        </header>
 
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = textarea.scrollHeight - 20 + 'px';
-        }
+        <main id="chat-box" class="chat-box">
+            <!-- Les bulles de messages apparaîtront ici -->
+        </main>
 
-        async function envoyer() {
-            const input = document.getElementById('msgInput');
-            const chat = document.getElementById('chat');
-            const text = input.value.trim();
-            if(!text) return;
-            
-            // Affichage message utilisateur
-            chat.innerHTML += `
-                <div class="message-row user-row">
-                    <div class="message-content">
-                        <div class="avatar">U</div>
-                        <div class="text">${escapeHtml(text)}</div>
-                    </div>
-                </div>`;
-            
-            // Enregistrement dans l'historique local
-            historiqueMessages.push({ role: "user", content: text });
+        <footer class="chat-footer">
+            <div class="input-area">
+                <textarea id="user-input" placeholder="Posez votre question de codage à Kurama..." rows="1"></textarea>
+                <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </footer>
+    </div>
 
-            input.value = '';
-            input.style.height = '24px';
-            chat.scrollTop = chat.scrollHeight;
-
-            try {
-                // Utilisation de l'API /api/chat pour envoyer TOUTE la conversation
-                const response = await fetch(`${HUGGING_FACE_URL}/api/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        model: 'alpha-code', 
-                        messages: historiqueMessages, 
-                        stream: false 
-                    })
-                });
-                
-                const data = await response.json();
-                let reply = data.message.content;
-                
-                // Enregistrement de la réponse de Kurama dans l'historique
-                historiqueMessages.push({ role: "assistant", content: reply });
-                
-                // Extraction et nettoyage du GIF
-                const urlRegex = /(https?:\/\/[^\s)]+\.gif)/g;
-                let gifHtml = "";
-                
-                if (urlRegex.test(reply)) {
-                    const matches = reply.match(urlRegex);
-                    const gifUrl = matches[0];
-                    reply = reply.replace(/!\[\]\(.*?\)/g, '').replace(urlRegex, '').trim();
-                    gifHtml = `<img src="${gifUrl}" class="kurama-img" alt="humeur">`;
-                }
-
-                // Formatage des blocs de code
-                reply = reply.replace(/```([a-z]*)\n([\s\S]*?)\n```/g, '<pre><code>$2</code></pre>');
-
-                chat.innerHTML += `
-                    <div class="message-row kurama-row">
-                        <div class="message-content">
-                            <div class="avatar">K</div>
-                            <div class="text">${reply}${gifHtml}</div>
-                        </div>
-                    </div>`;
-                    
-            } catch (e) {
-                chat.innerHTML += `
-                    <div class="message-row kurama-row">
-                        <div class="message-content">
-                            <div class="avatar">S</div>
-                            <div class="text" style="color:red;">[Erreur système : Échec de la liaison avec le démon]</div>
-                        </div>
-                    </div>`;
-            }
-            chat.scrollTop = chat.scrollHeight;
-        }
-
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
