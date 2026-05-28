@@ -1,21 +1,32 @@
-// Adresse directe de l'API de votre Space Hugging Face
-const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space"; 
+// 1. Déclaration unique de l'adresse de votre Space Hugging Face
+const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space/run/predict";
 
-// Gestion de l'affichage du menu d'historique
+// 2. Gestion de l'affichage du menu d'historique
 const sidebar = document.getElementById('sidebar');
-document.getElementById('open-sidebar').addEventListener('click', () => sidebar.classList.add('open'));
-document.getElementById('close-sidebar').addEventListener('click', () => sidebar.classList.remove('open'));
+const openSidebarBtn = document.getElementById('open-sidebar');
+const closeSidebarBtn = document.getElementById('close-sidebar');
 
-// Redimensionnement automatique de la zone d'écriture
+if (openSidebarBtn && sidebar) {
+    openSidebarBtn.addEventListener('click', () => sidebar.classList.add('open'));
+}
+if (closeSidebarBtn && sidebar) {
+    closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+}
+
+// 3. Redimensionnement automatique de la zone d'écriture
 const userInput = document.getElementById('user-input');
-userInput.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-});
+if (userInput) {
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+}
 
-// Injection des bulles de messages dans la boîte de dialogue
+// 4. Injection des bulles de messages dans la boîte de dialogue
 function appendMessage(sender, text) {
     const chatBox = document.getElementById('chat-box');
+    if (!chatBox) return null;
+    
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', sender);
 
@@ -30,15 +41,16 @@ function appendMessage(sender, text) {
     return messageDiv;
 }
 
-// Détection et mise en forme propre des réponses contenant du code (Markdown)
+// 5. Détection et mise en forme propre des réponses contenant du code (Markdown)
 function formatCodeBlocks(text) {
+    if (!text) return "";
     const regex = /```(\w*)\n([\s\S]*?)```/g;
     return text.replace(regex, (match, lang, code) => {
         return `
             <div class="code-container">
                 <div class="code-header">
                     <span>${lang.toUpperCase() || 'CODE'}</span>
-                    <button onclick="navigator.clipboard.writeText(\`${code.replace(/`/g, '\\`').trim()}\`)">
+                    <button type="button" onclick="navigator.clipboard.writeText(\`${code.replace(/`/g, '\\`').trim()}\`)">
                         <i class="fa-regular fa-copy"></i> Copier
                     </button>
                 </div>
@@ -49,47 +61,35 @@ function formatCodeBlocks(text) {
 }
 
 function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Écouteurs d'événements pour valider l'envoi
-document.getElementById('send-btn').addEventListener('click', handleSend);
-userInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-    }
-});
-
-// Assurez-vous que l'URL en haut de votre script.js ressemble exactement à ceci :
-const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space/run/predict";
-
+// 6. Gestion et traitement de l'envoi du message
 async function handleSend() {
+    if (!userInput) return;
     const text = userInput.value.trim();
     if (!text) return;
 
-    // 1. Afficher et sauvegarder le message de l'utilisateur (Rouge)
+    // Afficher le message de l'utilisateur (Rouge)
     appendMessage('user', text);
-    if (typeof saveMessageToSupabase === "function") {
-        saveMessageToSupabase('user', text); 
-    }
+    saveMessageToSupabase('user', text); 
 
     userInput.value = '';
     userInput.style.height = 'auto';
 
-    // 2. Créer la bulle de chargement pour Kurama (Noir)
+    // Créer la bulle de chargement pour Kurama (Noir)
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
     try {
-        // 3. Appel de l'API avec le nouveau format strict de Gradio
+        // Appel de l'API avec le format de Gradio
         const response = await fetch(SPACE_API_URL, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                data: [text], // Votre message texte envoyé à Qwen
-                fn_index: 0,  // Indique à Gradio d'utiliser la fonction principale du chatbot
+                data: [text], 
+                fn_index: 0,  
                 trigger_id: 8
             })
         });
@@ -100,24 +100,57 @@ async function handleSend() {
 
         const result = await response.json();
         
-        // 4. Extraction robuste de la réponse texte
+        // Extraction robuste de la réponse texte
         let reply = "";
         if (result.data && result.data.length > 0) {
-            reply = result.data[0]; // Récupère le premier élément du tableau de réponse
+            reply = result.data[0]; 
         } else {
             reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         }
 
-        // 5. Remplacement du texte d'attente par la réponse formatée en blocs de code
-        thinkingMessage.innerHTML = formatCodeBlocks(reply);
-        
-        // 6. Sauvegarder la réponse finale dans Supabase
-        if (typeof saveMessageToSupabase === "function") {
-            saveMessageToSupabase('ai', reply);
+        // Remplacement du texte d'attente par la réponse formatée
+        if (thinkingMessage) {
+            thinkingMessage.innerHTML = formatCodeBlocks(reply);
         }
+        
+        // Sauvegarder la réponse finale dans Supabase
+        saveMessageToSupabase('ai', reply);
 
     } catch (error) {
         console.error("Détails de l'erreur d'API Kurama:", error);
-        thinkingMessage.textContent = "Le démon Kurama rencontre des difficultés à répondre. Vérifiez la console (F12) pour plus de détails.";
+        if (thinkingMessage) {
+            thinkingMessage.textContent = "Le démon Kurama rencontre des difficultés à répondre. Vérifiez la console (F12) pour plus de détails.";
+        }
+    }
+}
+
+// 7. Écouteurs d'événements pour valider l'envoi (Bouton et Entrée)
+const sendBtn = document.getElementById('send-btn');
+if (sendBtn) {
+    sendBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        handleSend();
+    });
+}
+
+if (userInput) {
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+}
+
+// 8. Fonction de sauvegarde sécurisée vers l'API Supabase de Vercel
+async function saveMessageToSupabase(sender, message) {
+    try {
+        await fetch("/api/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sender, message })
+        });
+    } catch (e) {
+        console.log("En attente de la configuration finale de la route API.");
     }
 }
