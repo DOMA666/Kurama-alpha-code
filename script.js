@@ -1,7 +1,10 @@
-// 1. Déclaration de l'adresse API publique officielle pour forcer le réveil de votre Space Kurama
-const SPACE_API_URL = "https://hf.space";
+// 1. Importation du connecteur officiel Gradio via un CDN sécurisé
+import { Client } from "https://jsdelivr.net";
 
-// 2. Gestion de l'affichage du menu d'historique
+// Adresse unique et officielle de votre Space Kurama
+const SPACE_ID = "domy3/kurama-alpha-code";
+
+// 2. Gestion de l'affichage du menu d'historique (Sidebar)
 const sidebar = document.getElementById('sidebar');
 const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -60,7 +63,6 @@ function formatCodeBlocks(text) {
     });
 }
 
-// Nettoyage du texte et échappement HTML pour la sécurité des balises
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -79,37 +81,23 @@ async function handleSend() {
     userInput.style.height = 'auto';
 
     // Créer la bulle de chargement pour Kurama (Noir)
-    const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
-
-    // Configuration d'un chronomètre d'attente d'une heure (3600000 ms)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3600000);
+    const thinkingMessage = appendMessage('ai', "Kurama se connecte au démon à queue...");
 
     try {
-        // Appel de l'API avec le format de Gradio et le signal d'interruption
-        const response = await fetch(SPACE_API_URL, {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                data: [text]
-            }),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeoutId); // Annulation du chronomètre si Kurama répond avant 1h
-
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP : ${response.status}`);
+        // Connexion au Space à l'aide de la bibliothèque officielle de Hugging Face
+        const app = await Client.connect(SPACE_ID);
+        
+        if (thinkingMessage) {
+            thinkingMessage.textContent = "Kurama compile et génère votre code...";
         }
 
-        const result = await response.json();
-        
-        // Extraction corrigée et robuste de la réponse texte
+        // Appel de la fonction de prédiction par défaut (fn_index 0)
+        const result = await app.predict(0, [ text ]);
+
+        // Extraction de la réponse texte
         let reply = "";
-        if (result.data && result.data.length > 0) {
-            reply = result.data[0]; 
+        if (result && result.data && result.data.length > 0) {
+            reply = result.data[0]; // Gradio stocke la réponse dans un tableau data
         } else {
             reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         }
@@ -123,15 +111,9 @@ async function handleSend() {
         saveMessageToSupabase('ai', reply);
 
     } catch (error) {
-        clearTimeout(timeoutId);
-        console.error("Détails de l'erreur d'API Kurama:", error);
-        
+        console.error("Détails de l'erreur Gradio Client:", error);
         if (thinkingMessage) {
-            if (error.name === 'AbortError') {
-                thinkingMessage.textContent = "Le délai d'attente d'une heure a été dépassé. La génération du script était trop lourde.";
-            } else {
-                thinkingMessage.textContent = "Le démon Kurama prend du temps à compiler. Laissez l'onglet ouvert, le traitement est lourd...";
-            }
+            thinkingMessage.textContent = "La connexion au Space a échoué. Assurez-vous que l'application accepte les connexions publiques.";
         }
     }
 }
