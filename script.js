@@ -1,7 +1,7 @@
-// Identifiant officiel de votre Space Kurama
-const SPACE_ID = "domy3/kurama-alpha-code";
+// 1. Ton URL brute en déclaration unique
+const SPACE_API_URL = "https://domy3-kurama-alpha-code.hf.space";
 
-// Gestion de l'affichage du menu d'historique
+// 2. Gestion du menu d'historique (Sidebar)
 const sidebar = document.getElementById('sidebar');
 const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -13,7 +13,7 @@ if (closeSidebarBtn && sidebar) {
     closeSidebarBtn.addEventListener('click', function() { sidebar.classList.remove('open'); });
 }
 
-// Redimensionnement automatique de la zone d'écriture
+// 3. Zone d'écriture automatique
 const userInput = document.getElementById('user-input');
 if (userInput) {
     userInput.addEventListener('input', function() {
@@ -22,7 +22,7 @@ if (userInput) {
     });
 }
 
-// Injection des bulles de messages dans la boîte de dialogue
+// 4. Affichage des messages à l'écran
 function appendMessage(sender, text) {
     const chatBox = document.getElementById('chat-box');
     if (!chatBox) return null;
@@ -42,7 +42,7 @@ function appendMessage(sender, text) {
     return messageDiv;
 }
 
-// Détection et mise en forme propre des réponses contenant du code (Markdown)
+// 5. Formatage des blocs de code
 function formatCodeBlocks(text) {
     if (!text) return "";
     const regex = /```(\w*)\n([\s\S]*?)```/g;
@@ -65,7 +65,6 @@ function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Gestion des clics pour le bouton de copie du code
 function setupCopyButtons(container) {
     const buttons = container.querySelectorAll('.copy-btn');
     buttons.forEach(function(btn) {
@@ -74,50 +73,49 @@ function setupCopyButtons(container) {
             const code = decodeURIComponent(escape(atob(base64Code)));
             navigator.clipboard.writeText(code);
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Copié !';
-            setTimeout(function() {
-                btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copier';
-            }, 2000);
+            setTimeout(function() { btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copier'; }, 2000);
         });
     });
 }
 
-// Gestion et traitement de l'envoi du message
+// 6. Envoi direct via Fetch à ton URL (Attente d'une heure activée)
 async function handleSend() {
     if (!userInput) return;
     const text = userInput.value.trim();
     if (!text) return;
 
-    // Affiche instantanément le message de l'utilisateur (Rouge)
     appendMessage('user', text);
     saveMessageToSupabase('user', text); 
 
     userInput.value = '';
     userInput.style.height = 'auto';
 
-    // Créer la bulle de chargement pour Kurama (Noir)
-    const thinkingMessage = appendMessage('ai', "Kurama se connecte au démon à queue...");
+    const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3600000); // 1 heure
 
     try {
-        // CORRECTION ICI : Utilisation de la vraie fonction globale Client.connect de Hugging Face
-        if (typeof Client === 'undefined' || !Client.connect) {
-            throw new Error("La bibliothèque Hugging Face n'est pas prête.");
-        }
+        const response = await fetch(SPACE_API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                data: [text],
+                fn_index: 0,
+                trigger_id: 8
+            }),
+            signal: controller.signal
+        });
 
-        // Connexion au Space
-        const app = await Client.connect(SPACE_ID);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+
+        const result = await response.json();
         
-        if (thinkingMessage) {
-            thinkingMessage.textContent = "Kurama compile et génère votre code...";
-        }
-
-        // Requête auprès du Space Kurama
-        const result = await app.predict(0, [ text ]);
-
-        let reply = "";
+        let reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         if (result && result.data && result.data.length > 0) {
-            reply = result.data; 
-        } else {
-            reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
+            reply = result.data[0]; 
         }
 
         if (thinkingMessage) {
@@ -128,14 +126,15 @@ async function handleSend() {
         saveMessageToSupabase('ai', reply);
 
     } catch (error) {
-        console.error("Détails de l'erreur :", error);
+        clearTimeout(timeoutId);
+        console.error(error);
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Erreur de connexion. Le démon Kurama est en cours de démarrage, réessayez dans 30 secondes.";
+            thinkingMessage.textContent = "Le démon Kurama met du temps à compiler. Laissez l'onglet ouvert, le traitement est lourd...";
         }
     }
 }
 
-// Écouteurs d'événements pour le clic et la touche Entrée
+// 7. Écouteurs d'événements pour ton bouton
 const sendBtn = document.getElementById('send-btn');
 if (sendBtn) {
     sendBtn.addEventListener('click', function(e) {
@@ -153,7 +152,7 @@ if (userInput) {
     });
 }
 
-// Fonction de sauvegarde vers l'API Supabase de Vercel
+// 8. Sauvegarde Supabase
 async function saveMessageToSupabase(sender, message) {
     try {
         await fetch("/api/history", {
