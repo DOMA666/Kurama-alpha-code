@@ -98,18 +98,19 @@ async function handleSend() {
     const thinkingMessage = appendMessage('ai', "Kurama se connecte au démon à queue...");
 
     try {
-        // Utilisation du composant global chargé par le HTML
-        if (typeof gradioClient === 'undefined') {
-            throw new Error("La bibliothèque Gradio n'est pas encore chargée.");
+        // CORRECTION ICI : Utilisation de la vraie fonction globale Client.connect de Hugging Face
+        if (typeof Client === 'undefined' || !Client.connect) {
+            throw new Error("La bibliothèque Hugging Face n'est pas prête.");
         }
 
-        const app = await gradioClient.Client.connect(SPACE_ID);
+        // Connexion au Space
+        const app = await Client.connect(SPACE_ID);
         
         if (thinkingMessage) {
             thinkingMessage.textContent = "Kurama compile et génère votre code...";
         }
 
-        // Requête auprès du Space
+        // Requête auprès du Space Kurama
         const result = await app.predict(0, [ text ]);
 
         let reply = "";
@@ -129,7 +130,7 @@ async function handleSend() {
     } catch (error) {
         console.error("Détails de l'erreur :", error);
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Erreur de transmission. Le démon est occupé, réessayez dans un instant.";
+            thinkingMessage.textContent = "Erreur de connexion. Le démon Kurama est en cours de démarrage, réessayez dans 30 secondes.";
         }
     }
 }
