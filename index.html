@@ -3,45 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kurama AI Terminal</title>
-    <style>
-        /* Supprime les bordures de la page et force le mode plein écran */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #0a0a0d; /* Fond dark ChatGPT style */
-        }
-
-        /* Conteneur principal pour étirer l'iframe */
-        .chat-frame-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Configuration responsive de votre iframe Kurama */
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-        }
-    </style>
+    <title>Kurama AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cloudflare.com">
 </head>
 <body>
 
-    <div class="chat-frame-container">
-        <!-- Intégration directe et fluide de votre Space Kurama -->
-        <iframe 
-            src="https://domy3-kurama-alpha-code.hf.space" 
-            frameborder="0">
-        </iframe>
+    <!-- Menu latéral (Historique) -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fa-solid fa-scroll"></i> Historique</h3>
+            <button id="close-sidebar" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="history-list" class="history-list">
+            <!-- Les sessions Supabase chargeront ici -->
+        </div>
     </div>
 
+    <!-- Interface principale du Chat -->
+    <div class="chat-container">
+        <header class="chat-header">
+            <button id="open-sidebar" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+            <h1>Kurama <span class="badge">Alpha Code</span></h1>
+            <button id="new-chat" class="icon-btn"><i class="fa-solid fa-pen-to-square"></i></button>
+        </header>
+
+        <main id="chat-box" class="chat-box">
+            <!-- Les bulles de messages apparaîtront ici -->
+        </main>
+
+        <footer class="chat-footer">
+            <div class="input-area">
+                <textarea id="user-input" placeholder="Posez votre question de codage à Kurama..." rows="1"></textarea>
+                <button id="send-btn" type="button">➤</button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
