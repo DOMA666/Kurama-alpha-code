@@ -1,5 +1,5 @@
 // 1. Déclaration de ton lien avec le proxy réseau pour atteindre directement Ollama sur le port 11434
-const OLLAMA_API_URL = "https://domy3-kurama-alpha-code.hf.space";
+const OLLAMA_API_URL ="https://domy3-kurama-alpha-code.hf.space/api/generate";
 
 // 2. Gestion de l'affichage du menu d'historique (Sidebar)
 const sidebar = document.getElementById('sidebar');
