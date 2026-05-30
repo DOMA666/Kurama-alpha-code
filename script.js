@@ -71,6 +71,7 @@ function formatCodeBlocks(text) {
     });
 }
 
+// Remplacement propre du mot masqué "silent" lors de l'affichage
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -139,14 +140,23 @@ if (userInput) {
     });
 }
 
+// Fonction modifiée avec diagnostic d'erreur actif
 async function saveMessageToSupabase(sender, message) {
     try {
-        await fetch(API_HISTORY_URL, {
+        const response = await fetch(API_HISTORY_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sender: sender, message: message, session_id: currentSessionId })
         });
-    } catch (e) { console.log("Supabase save wait."); }
+        
+        if (!response.ok) {
+            const errData = await response.json();
+            console.error("Erreur API Vercel:", errData);
+            alert("Erreur Base de données : " + (errData.error || response.statusText));
+        }
+    } catch (e) { 
+        console.error("Erreur réseau Supabase:", e); 
+    }
 }
 
 async function loadHistoryFromSupabase() {
