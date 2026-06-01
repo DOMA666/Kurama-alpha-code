@@ -1,7 +1,6 @@
 const OLLAMA_API_URL = "https://domy3-kurama-alpha-code.hf.space/api/chat";
 const API_HISTORY_URL = "/api/history";
 
-// Tableau global pour stocker la mémoire vivante de la discussion (Format ChatGPT)
 let chatMessagesHistory = [];
 let currentSessionId = "session_" + Date.now();
 
@@ -10,17 +9,23 @@ const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
 
 if (openSidebarBtn && sidebar) {
-    openSidebarBtn.addEventListener('click', function() { sidebar.classList.add('open'); });
+    openSidebarBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        sidebar.classList.add('open');
+    });
 }
 if (closeSidebarBtn && sidebar) {
-    closeSidebarBtn.addEventListener('click', function() { sidebar.classList.remove('open'); });
+    closeSidebarBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        sidebar.classList.remove('open');
+    });
 }
 
 const newChatBtn = document.getElementById('new-chat');
 if (newChatBtn) {
     newChatBtn.addEventListener('click', function() {
         document.getElementById('chat-box').innerHTML = '';
-        chatMessagesHistory = []; // Vide l'historique de discussion virtuel
+        chatMessagesHistory = [];
         currentSessionId = "session_" + Date.now();
         if (sidebar) sidebar.classList.remove('open');
     });
@@ -76,7 +81,6 @@ function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Correction de l'écouteur du bouton Copier pour fonctionner sans flèche
 function setupCopyButtons(container) {
     const buttons = container.querySelectorAll('.copy-btn');
     buttons.forEach(function(btn) {
@@ -97,7 +101,6 @@ async function handleSend() {
     appendMessage('user', text);
     saveMessageToSupabase('user', text);
 
-    // Ajout obligatoire du message utilisateur dans la file d'attente d'Ollama Chat
     chatMessagesHistory.push({ role: "user", content: text });
 
     userInput.value = '';
@@ -106,13 +109,12 @@ async function handleSend() {
     const thinkingMessage = appendMessage('ai', "Kurama analyse et génère le code...");
 
     try {
-        // CORRECTION DE LA STRUCTURE : Utilisation du paramètre strict "messages" pour la route /api/chat
         const response = await fetch(OLLAMA_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "alpha-code",
-                messages: chatMessagesHistory, // Envoie de tout l'historique des requêtes
+                messages: chatMessagesHistory,
                 stream: false
             })
         });
@@ -120,13 +122,11 @@ async function handleSend() {
         if (!response.ok) throw new Error("Ollama network error");
         const result = await response.json();
         
-        // Extraction corrigée de la réponse selon la spécification de la route Chat
         let reply = "Désolé, Kurama n'a renvoyé aucune donnée.";
         if (result && result.message && result.message.content) {
             reply = result.message.content;
         }
 
-        // Sauvegarde de la réponse de l'IA dans l'historique virtuel pour le coup d'après
         chatMessagesHistory.push({ role: "assistant", content: reply });
 
         if (thinkingMessage) {
@@ -204,9 +204,8 @@ function reloadOldSession(allChats, sessionId) {
     if (!chatBox) return;
     chatBox.innerHTML = '';
     currentSessionId = sessionId;
-    chatMessagesHistory = []; // Nettoyage complet du fil virtuel pour reconstruire proprement
+    chatMessagesHistory = [];
 
-    // Filtrage et reconstruction de la mémoire de discussion pour Ollama
     const sessionChats = allChats.filter(function(chat) { return chat.session_id === sessionId; }).reverse();
     sessionChats.forEach(function(chat) {
         appendMessage(chat.sender === 'user' ? 'user' : 'ai', chat.message);
