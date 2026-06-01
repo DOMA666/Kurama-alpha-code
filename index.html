@@ -5,27 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kurama AI</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Bibliothèque d'icônes FontAwesome -->
     <link rel="stylesheet" href="https://cloudflare.com">
 </head>
 <body>
 
-    <!-- Menu latéral (Historique) -->
+    <!-- Menu latéral (Sidebar pour l'historique) -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
-            <h3><i class="fa-solid fa-scroll"></i> Historique</h3>
-            <button id="close-sidebar" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h3>Historique</h3>
+            <button id="close-sidebar" class="icon-btn">✕</button>
         </div>
         <div id="history-list" class="history-list">
-            <!-- Les sessions Supabase chargeront ici -->
+            <!-- Les anciennes sessions chargeront ici via Supabase -->
         </div>
     </div>
 
     <!-- Interface principale du Chat -->
     <div class="chat-container">
         <header class="chat-header">
-            <button id="open-sidebar" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+            <!-- Bouton obligatoire pour forcer l'ouverture du menu -->
+            <button id="open-sidebar" class="menu-trigger-btn">MENU</button>
             <h1>Kurama <span class="badge">Alpha Code</span></h1>
-            <button id="new-chat" class="icon-btn"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button id="new-chat" class="icon-btn">+</button>
         </header>
 
         <main id="chat-box" class="chat-box">
