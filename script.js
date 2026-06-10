@@ -102,13 +102,13 @@ async function handleSend() {
     const thinkingMessage = appendMessage('ai', "Kurama invoque sa puissance cloud...");
 
     try {
-        // On demande la génération à notre API qui appelle OpenRouter
         const response = await fetch(API_HISTORY_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 sender: "ai_request",
-                full_history: chatMessagesHistory
+                full_history: chatMessagesHistory,
+                session_id: currentSessionId
             })
         });
 
@@ -124,7 +124,6 @@ async function handleSend() {
             setupCopyButtons(thinkingMessage);
         }
         
-        // Sauvegarde définitive du résultat de l'IA dans Supabase
         saveMessageToSupabase('ai', reply);
         loadHistoryFromSupabase();
 
@@ -132,6 +131,17 @@ async function handleSend() {
         console.error(error);
         if (thinkingMessage) thinkingMessage.textContent = "Le lien spirituel avec Kurama a été coupé. Vérifiez vos variables d'environnement.";
     }
+}
+
+const sendBtn = document.getElementById('send-btn');
+if (sendBtn) {
+    sendBtn.addEventListener('click', function(e) { e.preventDefault(); handleSend(); });
+}
+
+if (userInput) {
+    userInput.addEventListener('keydown', function(e) { 
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } 
+    });
 }
 
 async function saveMessageToSupabase(sender, message) {
@@ -164,6 +174,8 @@ async function loadHistoryFromSupabase() {
             const historyItem = document.createElement('div');
             historyItem.classList.add('history-item');
             historyItem.textContent = uniqueSessions[sessionId].substring(0, 22) + "...";
+            historyItem.style.padding = "12px";
+            historyItem.style.cursor = "pointer";
             historyItem.addEventListener('click', function() { reloadOldSession(chats, sessionId); });
             historyList.appendChild(historyItem);
         });
