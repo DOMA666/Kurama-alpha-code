@@ -78,7 +78,6 @@ function formatCodeBlocks(text) {
 
 function escapeHtml(text) {
     if (!text) return "";
-    // Élimine chirurgicalement les balises de pensée internes du modèle 72B
     return text.replace(/<thought>[\s\S]*?<\/thought>/g, "")
                .replace(/&/g, "&amp;")
                .replace(/ silent/g, "")
@@ -86,6 +85,7 @@ function escapeHtml(text) {
                .replace(/>/g, "&gt;");
 }
 
+// Fonction de clic sur le bouton Copier
 function setupCopyButtons(container) {
     const buttons = container.querySelectorAll('.copy-btn');
     buttons.forEach(function(btn) {
@@ -124,9 +124,12 @@ async function handleSend() {
             })
         });
 
-        if (!response.ok) throw new Error("Erreur de transmission Cloud");
-        const result = await response.json();
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || response.statusText);
+        }
         
+        const result = await response.json();
         let reply = result.reply || "Désolé, Kurama n'a renvoyé aucune donnée.";
 
         chatMessagesHistory.push({ role: "assistant", content: reply });
@@ -140,9 +143,10 @@ async function handleSend() {
         loadHistoryFromSupabase();
 
     } catch (error) {
-        console.error(error);
+        console.error("Erreur détectée :", error);
         if (thinkingMessage) {
-            thinkingMessage.textContent = "Le lien spirituel avec Kurama a été coupé. Vérifiez vos variables d'environnement.";
+            // CORRECTION DIAGNOSTIC : Affichage direct de la cause réseau ou API à l'écran
+            thinkingMessage.textContent = "Lien coupé. Raison technique : " + error.message;
         }
     }
 }
