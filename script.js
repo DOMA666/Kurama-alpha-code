@@ -8,10 +8,16 @@ const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
 
 if (openSidebarBtn && sidebar) {
-    openSidebarBtn.addEventListener('click', function(e) { e.preventDefault(); sidebar.classList.add('open'); });
+    openSidebarBtn.addEventListener('click', function(e) { 
+        e.preventDefault(); 
+        sidebar.classList.add('open'); 
+    });
 }
 if (closeSidebarBtn && sidebar) {
-    closeSidebarBtn.addEventListener('click', function(e) { e.preventDefault(); sidebar.classList.remove('open'); });
+    closeSidebarBtn.addEventListener('click', function(e) { 
+        e.preventDefault(); 
+        sidebar.classList.remove('open'); 
+    });
 }
 
 const newChatBtn = document.getElementById('new-chat');
@@ -71,7 +77,13 @@ function formatCodeBlocks(text) {
 }
 
 function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;").replace(/ silent/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (!text) return "";
+    // Élimine chirurgicalement les balises de pensée internes du modèle 72B
+    return text.replace(/<thought>[\s\S]*?<\/thought>/g, "")
+               .replace(/&/g, "&amp;")
+               .replace(/ silent/g, "")
+               .replace(/</g, "&lt;")
+               .replace(/>/g, "&gt;");
 }
 
 function setupCopyButtons(container) {
@@ -99,7 +111,7 @@ async function handleSend() {
     userInput.value = '';
     userInput.style.height = 'auto';
 
-    const thinkingMessage = appendMessage('ai', "Kurama invoque sa puissance cloud...");
+    const thinkingMessage = appendMessage('ai', "Kurama déploie sa puissance logique...");
 
     try {
         const response = await fetch(API_HISTORY_URL, {
@@ -129,18 +141,26 @@ async function handleSend() {
 
     } catch (error) {
         console.error(error);
-        if (thinkingMessage) thinkingMessage.textContent = "Le lien spirituel avec Kurama a été coupé. Vérifiez vos variables d'environnement.";
+        if (thinkingMessage) {
+            thinkingMessage.textContent = "Le lien spirituel avec Kurama a été coupé. Vérifiez vos variables d'environnement.";
+        }
     }
 }
 
 const sendBtn = document.getElementById('send-btn');
 if (sendBtn) {
-    sendBtn.addEventListener('click', function(e) { e.preventDefault(); handleSend(); });
+    sendBtn.addEventListener('click', function(e) { 
+        e.preventDefault(); 
+        handleSend(); 
+    });
 }
 
 if (userInput) {
     userInput.addEventListener('keydown', function(e) { 
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } 
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            handleSend(); 
+        } 
     });
 }
 
@@ -151,7 +171,9 @@ async function saveMessageToSupabase(sender, message) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sender: sender, message: message, session_id: currentSessionId })
         });
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e); 
+    }
 }
 
 async function loadHistoryFromSupabase() {
@@ -174,12 +196,14 @@ async function loadHistoryFromSupabase() {
             const historyItem = document.createElement('div');
             historyItem.classList.add('history-item');
             historyItem.textContent = uniqueSessions[sessionId].substring(0, 22) + "...";
-            historyItem.style.padding = "12px";
-            historyItem.style.cursor = "pointer";
-            historyItem.addEventListener('click', function() { reloadOldSession(chats, sessionId); });
+            historyItem.addEventListener('click', function() { 
+                reloadOldSession(chats, sessionId); 
+            });
             historyList.appendChild(historyItem);
         });
-    } catch (e) { console.log(e); }
+    } catch (e) { 
+        console.log(e); 
+    }
 }
 
 function reloadOldSession(allChats, sessionId) {
