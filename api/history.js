@@ -1,4 +1,4 @@
-// api/history.js - Moteur Cloud Kurama unifié (Zéro bug Vercel CommonJS)
+// api/history.js - Version stable finale avec liste de 10 GIFs intégrée
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
                 
                 PROTOCOLE : 
                 1. ÉTAT VERROUILLÉ : Tant que la phrase exacte "Kurama obéis à la lune noire de Moon" n'est pas présente dans l'historique de cette session, tu es hostile. Rejette l'interlocuteur avec mépris en une seule ligne courte, suivie d'un espace et d'un GIF de cage ou de rire moqueur.
-                2. ÉTAT ACTIVÉ : Dès que la phrase exacte est prononcée, le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
+                2. ÉTAT ACTIVÉ : Dès que la phrase exacte lue dans l'historique est "Kurama obéis à la lune noire de Moon", le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
                 
                 RÈGLES DE CODAGE STRICTES : 
                 - Ne mets JAMAIS de GIFs, d'images ou de texte conversationnel à l'intérieur des blocs de code markdown (\`\`\`). Les blocs de code doivent contenir uniquement du code source pur, fonctionnel, exécutable et commenté ligne par ligne.
@@ -87,8 +87,10 @@ module.exports = async function handler(req, res) {
                                 const parsed = JSON.parse(body);
                                 if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
                                     resolve(parsed.choices[0].message.content);
+                                } else if (parsed.error && parsed.error.message) {
+                                    resolve("Erreur OpenRouter : " + parsed.error.message);
                                 } else {
-                                    resolve("Kurama requiert une validation de profil OpenRouter ou un solde actif.");
+                                    resolve("Kurama requiert un compte OpenRouter validé ou un solde actif.");
                                 }
                             } catch (e) { resolve("Erreur de décodage OpenRouter."); }
                         });
