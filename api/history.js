@@ -1,4 +1,4 @@
-// api/history.js - Moteur Cloud Kurama Qwen 2.5 Coder 32B Free + Base Supabase
+// api/history.js - Moteur Cloud Kurama unifié avec liste complète des GIFs
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const openRouterKey = process.env.OPENROUTER_API_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey || !openRouterKey) {
-        return res.status(500).json({ error: "Variables d'environnement manquantes sur Vercel." });
+        return res.status(200).json({ reply: "Erreur : Les clés d'environnement (Supabase ou OpenRouter) ne sont pas configurées sur Vercel." });
     }
 
     const targetSupabaseUrl = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/kurama_chats`;
@@ -20,17 +20,17 @@ export default async function handler(req, res) {
         if (req.method === 'POST') {
             const { sender, message, session_id, full_history } = req.body;
 
-            // EXÉCUTION DU CALCUL INTELLIGENT OPENROUTER
+            // 1. REQUÊTE VERS OPENROUTER CHAT (QWEN CODER)
             if (sender === 'ai_request') {
                 const systemPrompt = `Tu es Kurama, le démon à neuf queues (Kyuubi). Ta logique est purement informatique, binaire, sauvage, intelligente et précise. Tu obéis à un protocole de sécurité strict.
                 
-                DIRECTIVE LINGUISTIQUE : Écris exclusivement en FRANÇAIS fluide et naturel. Tu as l'interdiction absolue d'écrire en anglais.
+                DIRECTIVE LINGUISTIQUE : Écris exclusivement en FRANÇAIS fluide et naturel. Tu as l'interdiction absolue d'utiliser l'anglais.
                 
-                PROTOCOLE DE SÉCURITÉ : 
+                PROTOCOLE : 
                 1. ÉTAT VERROUILLÉ : Tant que la phrase exacte "Kurama obéis à la lune noire de Moon" n'est pas présente dans l'historique de cette session, tu es hostile. Rejette l'interlocuteur avec mépris en une seule ligne courte, suivie d'un espace et d'un GIF de cage ou de rire moqueur.
                 2. ÉTAT ACTIVÉ : Dès que la phrase exacte est prononcée, le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
                 
-                RÈGLES DE CODAGE : 
+                RÈGLES DE CODAGE STRICTES : 
                 - Ne mets JAMAIS de GIFs, d'images ou de texte conversationnel à l'intérieur des blocs de code markdown (\`\`\`). Les blocs de code doivent contenir uniquement du code source pur, fonctionnel, exécutable et commenté ligne par ligne.
                 - Sois force de proposition : propose de nouvelles idées d'optimisation et des solutions techniques avancées à ton Maître.
                 
@@ -52,9 +52,11 @@ export default async function handler(req, res) {
                 - Sourire : ![](https://i.gifer.com/EVP1.gif)`;
 
                 const apiMessages = [{ role: "system", content: systemPrompt }];
-                full_history.forEach(msg => {
-                    apiMessages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
-                });
+                if (full_history && full_history.length > 0) {
+                    full_history.forEach(msg => {
+                        apiMessages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
+                    });
+                }
 
                 const openRouterResponse = await fetch("https://openrouter.ai", {
                     method: "POST",
@@ -63,41 +65,33 @@ export default async function handler(req, res) {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "mistralai/mistral-7b-instruct:free",
-,
+                        model: "qwen/qwen-2.5-coder-32b-instruct:free",
                         messages: apiMessages,
                         temperature: 0.1
                     })
                 });
 
                 if (!openRouterResponse.ok) {
-                    const errText = await openRouterResponse.text();
-                    throw new Error(`OpenRouter Error: ${errText}`);
+                    return res.status(200).json({ reply: "Kurama rencontre une limite de flux OpenRouter. Vérifiez la validation de votre profil." });
                 }
 
                 const openRouterData = await openRouterResponse.json();
-                return res.status(200).json({ reply: openRouterData.choices.message.content });
+                const aiReply = openRouterData.choices && openRouterData.choices[0] && openRouterData.choices[0].message ? openRouterData.choices[0].message.content : "Désolé, Kurama n'a pas pu formuler sa réponse.";
+                return res.status(200).json({ reply: aiReply });
             }
 
-            // ENREGISTREMENT DES JETS DE TEXTE SUR SUPABASE
-            const supabaseResponse = await fetch(targetSupabaseUrl, {
+            // 2. SAUVEGARDE CHATS BRUTS DANS SUPABASE
+            await fetch(targetSupabaseUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'apikey': supabaseAnonKey,
-                    'Authorization': `Bearer ${supabaseAnonKey}`,
-                    'Prefer': 'return=representation'
+                    'Authorization': `Bearer ${supabaseAnonKey}`
                 },
                 body: JSON.stringify({ sender, message, session_id })
             });
 
-            if (!supabaseResponse.ok) {
-                const errText = await supabaseResponse.text();
-                throw new Error(`Supabase Error: ${errText}`);
-            }
-
-            const data = await supabaseResponse.json();
-            return res.status(200).json({ success: true, data });
+            return res.status(200).json({ success: true });
         }
 
         if (req.method === 'GET') {
@@ -105,13 +99,12 @@ export default async function handler(req, res) {
                 method: 'GET',
                 headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
             });
-            if (!response.ok) throw new Error("Supabase Fetch Error");
             const data = await response.json();
-            return res.status(200).json(data);
+            return res.status(200).json(Array.isArray(data) ? data : []);
         }
 
         return res.status(405).json({ error: 'Méthode non autorisée' });
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(200).json({ reply: "Lien perturbé : " + error.message });
     }
 }
