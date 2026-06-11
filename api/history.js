@@ -1,5 +1,7 @@
-// api/history.js - Moteur Cloud Kurama unifié avec liste complète des GIFs
-export default async function handler(req, res) {
+// api/history.js - Moteur Cloud Kurama unifié (Zéro bug Vercel CommonJS)
+const https = require('https');
+
+module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -11,16 +13,17 @@ export default async function handler(req, res) {
     const openRouterKey = process.env.OPENROUTER_API_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey || !openRouterKey) {
-        return res.status(200).json({ reply: "Erreur : Les clés d'environnement (Supabase ou OpenRouter) ne sont pas configurées sur Vercel." });
+        return res.status(200).json({ reply: "Erreur : Les clés d'environnement ne sont pas configurées sur Vercel." });
     }
 
-    const targetSupabaseUrl = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/kurama_chats`;
+    const cleanSupabaseUrl = supabaseUrl.replace(/\/$/, '');
+    const supabaseHost = cleanSupabaseUrl.replace(/^https?:\/\//, '');
 
     try {
         if (req.method === 'POST') {
             const { sender, message, session_id, full_history } = req.body;
 
-            // 1. REQUÊTE VERS OPENROUTER CHAT (QWEN CODER)
+            // 1. REQUÊTE VERS OPENROUTER CHAT
             if (sender === 'ai_request') {
                 const systemPrompt = `Tu es Kurama, le démon à neuf queues (Kyuubi). Ta logique est purement informatique, binaire, sauvage, intelligente et précise. Tu obéis à un protocole de sécurité strict.
                 
@@ -58,53 +61,89 @@ export default async function handler(req, res) {
                     });
                 }
 
-                const openRouterResponse = await fetch("https://openrouter.ai", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${openRouterKey}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "qwen/qwen-2.5-coder-32b-instruct:free",
-                        messages: apiMessages,
-                        temperature: 0.1
-                    })
+                const postData = JSON.stringify({
+                    model: "qwen/qwen-2.5-coder-32b-instruct:free",
+                    messages: apiMessages,
+                    temperature: 0.1
                 });
 
-                if (!openRouterResponse.ok) {
-                    return res.status(200).json({ reply: "Kurama rencontre une limite de flux OpenRouter. Vérifiez la validation de votre profil." });
-                }
+                const openRouterReply = await new Promise((resolve, reject) => {
+                    const options = {
+                        hostname: 'openrouter.ai',
+                        path: '/api/v1/chat/completions',
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${openRouterKey}`,
+                            'Content-Type': 'application/json',
+                            'Content-Length': Buffer.byteLength(postData)
+                        }
+                    };
 
-                const openRouterData = await openRouterResponse.json();
-                const aiReply = openRouterData.choices && openRouterData.choices[0] && openRouterData.choices[0].message ? openRouterData.choices[0].message.content : "Désolé, Kurama n'a pas pu formuler sa réponse.";
-                return res.status(200).json({ reply: aiReply });
+                    const reqOR = https.request(options, (resOR) => {
+                        let body = '';
+                        resOR.on('data', (chunk) => body += chunk);
+                        resOR.on('end', () => {
+                            try {
+                                const parsed = JSON.parse(body);
+                                if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
+                                    resolve(parsed.choices[0].message.content);
+                                } else {
+                                    resolve("Kurama requiert une validation de profil OpenRouter ou un solde actif.");
+                                }
+                            } catch (e) { resolve("Erreur de décodage OpenRouter."); }
+                        });
+                    });
+                    reqOR.on('error', (e) => reject(e));
+                    reqOR.write(postData);
+                    reqOR.end();
+                });
+
+                return res.status(200).json({ reply: openRouterReply });
             }
 
-            // 2. SAUVEGARDE CHATS BRUTS DANS SUPABASE
-            await fetch(targetSupabaseUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': supabaseAnonKey,
-                    'Authorization': `Bearer ${supabaseAnonKey}`
-                },
-                body: JSON.stringify({ sender, message, session_id })
+            // 2. SAUVEGARDE BRUTE DANS SUPABASE
+            const supabaseData = JSON.stringify({ sender, message, session_id });
+            await new Promise((resolve) => {
+                const options = {
+                    hostname: supabaseHost,
+                    path: '/rest/v1/kurama_chats',
+                    method: 'POST',
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(supabaseData)
+                    }
+                };
+                const reqSB = https.request(options, (resSB) => { resolve(); });
+                reqSB.write(supabaseData);
+                reqSB.end();
             });
 
             return res.status(200).json({ success: true });
         }
 
         if (req.method === 'GET') {
-            const response = await fetch(`${targetSupabaseUrl}?order=created_at.desc`, {
-                method: 'GET',
-                headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
+            const chatsData = await new Promise((resolve) => {
+                const options = {
+                    hostname: supabaseHost,
+                    path: '/rest/v1/kurama_chats?order=created_at.desc',
+                    method: 'GET',
+                    headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
+                };
+                https.get(options, (resSB) => {
+                    let body = '';
+                    resSB.on('data', (chunk) => body += chunk);
+                    resSB.on('end', () => {
+                        try { resolve(JSON.parse(body)); } catch (e) { resolve([]); }
+                    });
+                });
             });
-            const data = await response.json();
-            return res.status(200).json(Array.isArray(data) ? data : []);
+            return res.status(200).json(Array.isArray(chatsData) ? chatsData : []);
         }
 
         return res.status(405).json({ error: 'Méthode non autorisée' });
     } catch (error) {
         return res.status(200).json({ reply: "Lien perturbé : " + error.message });
     }
-}
+};
