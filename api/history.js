@@ -63,7 +63,8 @@ export default async function handler(req, res) {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "qwen/qwen-2.5-coder-32b-instruct:free",
+                        model: "mistralai/mistral-7b-instruct:free",
+,
                         messages: apiMessages,
                         temperature: 0.1
                     })
