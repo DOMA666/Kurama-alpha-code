@@ -1,4 +1,4 @@
-// api/history.js - Version stable finale Groq Cloud 70B (Adresse fixe + 12 GIFs)
+// api/history.js - Forcer la compilation finale Groq Cloud 70B
 const https = require('https');
 
 module.exports = async function handler(req, res) {
