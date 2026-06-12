@@ -8,16 +8,10 @@ const openSidebarBtn = document.getElementById('open-sidebar');
 const closeSidebarBtn = document.getElementById('close-sidebar');
 
 if (openSidebarBtn && sidebar) {
-    openSidebarBtn.addEventListener('click', function(e) { 
-        e.preventDefault(); 
-        sidebar.classList.add('open'); 
-    });
+    openSidebarBtn.addEventListener('click', function(e) { e.preventDefault(); sidebar.classList.add('open'); });
 }
 if (closeSidebarBtn && sidebar) {
-    closeSidebarBtn.addEventListener('click', function(e) { 
-        e.preventDefault(); 
-        sidebar.classList.remove('open'); 
-    });
+    closeSidebarBtn.addEventListener('click', function(e) { e.preventDefault(); sidebar.classList.remove('open'); });
 }
 
 const newChatBtn = document.getElementById('new-chat');
@@ -85,7 +79,6 @@ function escapeHtml(text) {
                .replace(/>/g, "&gt;");
 }
 
-// Fonction de clic sur le bouton Copier
 function setupCopyButtons(container) {
     const buttons = container.querySelectorAll('.copy-btn');
     buttons.forEach(function(btn) {
@@ -145,7 +138,6 @@ async function handleSend() {
     } catch (error) {
         console.error("Erreur détectée :", error);
         if (thinkingMessage) {
-            // CORRECTION DIAGNOSTIC : Affichage direct de la cause réseau ou API à l'écran
             thinkingMessage.textContent = "Lien coupé. Raison technique : " + error.message;
         }
     }
@@ -153,18 +145,12 @@ async function handleSend() {
 
 const sendBtn = document.getElementById('send-btn');
 if (sendBtn) {
-    sendBtn.addEventListener('click', function(e) { 
-        e.preventDefault(); 
-        handleSend(); 
-    });
+    sendBtn.addEventListener('click', function(e) { e.preventDefault(); handleSend(); });
 }
 
 if (userInput) {
     userInput.addEventListener('keydown', function(e) { 
-        if (e.key === 'Enter' && !e.shiftKey) { 
-            e.preventDefault(); 
-            handleSend(); 
-        } 
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } 
     });
 }
 
@@ -175,9 +161,7 @@ async function saveMessageToSupabase(sender, message) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sender: sender, message: message, session_id: currentSessionId })
         });
-    } catch (e) { 
-        console.error(e); 
-    }
+    } catch (e) { console.error(e); }
 }
 
 async function loadHistoryFromSupabase() {
@@ -200,14 +184,10 @@ async function loadHistoryFromSupabase() {
             const historyItem = document.createElement('div');
             historyItem.classList.add('history-item');
             historyItem.textContent = uniqueSessions[sessionId].substring(0, 22) + "...";
-            historyItem.addEventListener('click', function() { 
-                reloadOldSession(chats, sessionId); 
-            });
+            historyItem.addEventListener('click', function() { reloadOldSession(chats, sessionId); });
             historyList.appendChild(historyItem);
         });
-    } catch (e) { 
-        console.log(e); 
-    }
+    } catch (e) { console.log(e); }
 }
 
 function reloadOldSession(allChats, sessionId) {
