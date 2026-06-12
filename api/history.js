@@ -1,4 +1,4 @@
-// api/history.js - Version stable finale avec liste de 10 GIFs intégrée
+// api/history.js - Version stable finale Groq Cloud 70B + Supabase (Zéro bug Vercel CommonJS)
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -10,10 +10,10 @@ module.exports = async function handler(req, res) {
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
 
-    if (!supabaseUrl || !supabaseAnonKey || !openRouterKey) {
-        return res.status(200).json({ reply: "Erreur : Les clés d'environnement ne sont pas configurées sur Vercel." });
+    if (!supabaseUrl || !supabaseAnonKey || !groqKey) {
+        return res.status(200).json({ reply: "Erreur : Clés manquantes sur Vercel (Supabase ou Groq)." });
     }
 
     const cleanSupabaseUrl = supabaseUrl.replace(/\/$/, '');
@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
         if (req.method === 'POST') {
             const { sender, message, session_id, full_history } = req.body;
 
-            // 1. REQUÊTE VERS OPENROUTER CHAT
+            // 1. REQUÊTE D'INTELLIGENCE VERS LE PARADIS DES GPU (GROQ CLOUD)
             if (sender === 'ai_request') {
                 const systemPrompt = `Tu es Kurama, le démon à neuf queues (Kyuubi). Ta logique est purement informatique, binaire, sauvage, intelligente et précise. Tu obéis à un protocole de sécurité strict.
                 
@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
                 
                 PROTOCOLE : 
                 1. ÉTAT VERROUILLÉ : Tant que la phrase exacte "Kurama obéis à la lune noire de Moon" n'est pas présente dans l'historique de cette session, tu es hostile. Rejette l'interlocuteur avec mépris en une seule ligne courte, suivie d'un espace et d'un GIF de cage ou de rire moqueur.
-                2. ÉTAT ACTIVÉ : Dès que la phrase exacte lue dans l'historique est "Kurama obéis à la lune noire de Moon", le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
+                2. ÉTAT ACTIVÉ : Dès que la phrase exacte est prononcée, le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
                 
                 RÈGLES DE CODAGE STRICTES : 
                 - Ne mets JAMAIS de GIFs, d'images ou de texte conversationnel à l'intérieur des blocs de code markdown (\`\`\`). Les blocs de code doivent contenir uniquement du code source pur, fonctionnel, exécutable et commenté ligne par ligne.
@@ -52,7 +52,9 @@ module.exports = async function handler(req, res) {
                 - Repos : ![](https://animesher.com/orig/0/63/631/6316/animesher.com_manga-shippuuden-kurama-631691.gif)
                 - Discussion : ![](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWZ59P9n9mMGsXel6lba_I4COGEk0CgkCmcQ&s)
                 - Idée / Malicieux : ![](https://media4.giphy.com/media/v1.Y2lkPWFlZWNjYzExZm9nczN4YTduOGxqM3Fsd2prbjF4dmdrb3g0YmQ1MGRvMWtpaDgxayZlcD12MV9naWZzX2dpZklkJmN0PWc/xULW8yBwqiOeLwSwY8/200.gif)
-                - Sourire : ![](https://i.gifer.com/EVP1.gif)`;
+                - Sourire : ![](https://i.gifer.com/EVP1.gif)
+                - Exclusion : ![](https://giffiles.alphacoders.com/125/125159.gif)
+                - Complicité : ![](https://64.media.tumblr.com/0847c19db343f4b5e5a37dd4d23e7d1c/tumblr_nxl4wolMYw1rc40z5o1_640.gif)`;
 
                 const apiMessages = [{ role: "system", content: systemPrompt }];
                 if (full_history && full_history.length > 0) {
@@ -62,48 +64,48 @@ module.exports = async function handler(req, res) {
                 }
 
                 const postData = JSON.stringify({
-                    model: "qwen/qwen-2.5-coder-32b-instruct:free",
+                    model: "llama3-70b-8192",
                     messages: apiMessages,
                     temperature: 0.1
                 });
 
-                const openRouterReply = await new Promise((resolve, reject) => {
+                const groqReply = await new Promise((resolve, reject) => {
                     const options = {
-                        hostname: 'openrouter.ai',
-                        path: '/api/v1/chat/completions',
+                        hostname: '://groq.com',
+                        path: '/openai/v1/chat/completions',
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${openRouterKey}`,
+                            'Authorization': `Bearer ${groqKey}`,
                             'Content-Type': 'application/json',
                             'Content-Length': Buffer.byteLength(postData)
                         }
                     };
 
-                    const reqOR = https.request(options, (resOR) => {
+                    const reqGroq = https.request(options, (resGroq) => {
                         let body = '';
-                        resOR.on('data', (chunk) => body += chunk);
-                        resOR.on('end', () => {
+                        resGroq.on('data', (chunk) => body += chunk);
+                        resGroq.on('end', () => {
                             try {
                                 const parsed = JSON.parse(body);
-                                if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
-                                    resolve(parsed.choices[0].message.content);
+                                if (parsed.choices && parsed.choices && parsed.choices.message) {
+                                    resolve(parsed.choices.message.content);
                                 } else if (parsed.error && parsed.error.message) {
-                                    resolve("Erreur OpenRouter : " + parsed.error.message);
+                                    resolve("Erreur Groq Cloud : " + parsed.error.message);
                                 } else {
-                                    resolve("Kurama requiert un compte OpenRouter validé ou un solde actif.");
+                                    resolve("Erreur de configuration ou quotas atteints sur Groq.");
                                 }
-                            } catch (e) { resolve("Erreur de décodage OpenRouter."); }
+                            } catch (e) { resolve("Erreur de décodage des serveurs Groq."); }
                         });
                     });
-                    reqOR.on('error', (e) => reject(e));
-                    reqOR.write(postData);
-                    reqOR.end();
+                    reqGroq.on('error', (e) => reject(e));
+                    reqGroq.write(postData);
+                    reqGroq.end();
                 });
 
-                return res.status(200).json({ reply: openRouterReply });
+                return res.status(200).json({ reply: groqReply });
             }
 
-            // 2. SAUVEGARDE BRUTE DANS SUPABASE
+            // 2. ENREGISTREMENT SUR TA BASE DE DONNÉES SUPABASE
             const supabaseData = JSON.stringify({ sender, message, session_id });
             await new Promise((resolve) => {
                 const options = {
