@@ -1,4 +1,4 @@
-// api/history.js - Version stable finale Groq Cloud 70B + Supabase (Zéro bug Vercel CommonJS)
+// api/history.js - Version stable finale Groq Cloud 70B (Adresse fixe + 12 GIFs)
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -87,8 +87,8 @@ module.exports = async function handler(req, res) {
                         resGroq.on('end', () => {
                             try {
                                 const parsed = JSON.parse(body);
-                                if (parsed.choices && parsed.choices && parsed.choices.message) {
-                                    resolve(parsed.choices.message.content);
+                                if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
+                                    resolve(parsed.choices[0].message.content);
                                 } else if (parsed.error && parsed.error.message) {
                                     resolve("Erreur Groq Cloud : " + parsed.error.message);
                                 } else {
