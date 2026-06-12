@@ -1,4 +1,4 @@
-const API_HISTORY_URL = "/api/history";
+const API_HISTORY_URL = "/api/kurama.js";
 
 let chatMessagesHistory = [];
 let currentSessionId = "session_" + Date.now();
