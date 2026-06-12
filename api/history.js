@@ -71,7 +71,7 @@ module.exports = async function handler(req, res) {
 
                 const groqReply = await new Promise((resolve, reject) => {
                     const options = {
-                        hostname: '://groq.com',
+                        hostname: 'api.groq.com',
                         path: '/openai/v1/chat/completions',
                         method: 'POST',
                         headers: {
