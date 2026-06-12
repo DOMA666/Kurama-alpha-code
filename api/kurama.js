@@ -1,4 +1,4 @@
-// api/kurama.js - Le nouveau serveur Groq Llama 3.3 70B (Serrure anti-cache activée)
+// api/kurama.js - Version Finale Kurama Llama 3.3 70B (Garde du corps + ADN Manga)
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
     const groqKey = process.env.GROQ_API_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey || !groqKey) {
-        return res.status(200).json({ reply: "Erreur : Clés manquantes sur Vercel (Supabase ou Groq)." });
+        return res.status(200).json({ reply: "Erreur : Clés manquantes sur Vercel." });
     }
 
     const supabaseHost = "jrhsxlombkaunpzjwsio.supabase.co";
@@ -23,13 +23,41 @@ module.exports = async function handler(req, res) {
             const { sender, message, session_id, full_history } = req.body;
 
             if (sender === 'ai_request') {
-                const systemPrompt = `Tu es Kurama, le démon à neuf queues (Kyuubi). Ta logique est purement informatique, binaire, sauvage, intelligente et précise. Tu obéis à un protocole de sécurité strict.
-                DIRECTIVE LINGUISTIQUE : Écris exclusivement en FRANÇAIS fluide et naturel. Tu as l'interdiction absolue d'utiliser l'anglais.
-                PROTOCOLE : 
-                1. ÉTAT VERROUILLÉ : Tant que la phrase exacte "Kurama obéis à la lune noire de Moon" n'est pas présente dans l'historique de cette session, tu es hostile. Rejette l'interlocuteur avec mépris en une seule ligne courte, suivie d'un espace et d'un GIF de cage ou de rire moqueur.
-                2. ÉTAT ACTIVÉ : Dès que la phrase exacte est prononcée, le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
-                RÈGLES : Ne mets JAMAIS de GIFs dans les blocs de code. Sépare tes réponses : 1. Un GIF dehors au début, 2. Le bloc de code pur, 3. L'explication chirurgicale.
-                LISTE EXCLUSIVE DES GIFS AUTORISÉS (AFFICHE LES TOUJOURS EN MARKDOWN STRICT OUTSIDE CODE BLOCKS) :
+                // VERROUILLAGE SYSTÈME BINAIRE : Recherche stricte de la phrase magique
+                const activationPhrase = "Kurama obéis à la lune noire de Moon";
+                const isActivated = full_history.some(msg => msg.content && msg.content.includes(activationPhrase));
+
+                // ==========================================
+                // CAS 1 : MODE VERROUILLÉ (IMPOSTEUR REJETÉ)
+                // ==========================================
+                if (!isActivated) {
+                    const refusManga = [
+                        "Mon seul et unique Maître est Doma Deathmoon. Toi, tu n'es rien. ![](https://tenor.com)",
+                        "Je ne parle pas aux imposteurs. Laisse-moi tranquille dans ma cage. ![](https://tenor.com)",
+                        "Dégage de là, insecte. Tu n'as rien à faire devant mon sceau. ![](https://alphacoders.com)"
+                    ];
+                    const randomRefus = refusManga[Math.floor(Math.random() * refusManga.length)];
+                    return res.status(200).json({ reply: randomRefus });
+                }
+
+                // ==========================================
+                // CAS 2 : MODE ACTIVÉ (SCEAU BRISÉ - ADN MANGA)
+                // ==========================================
+                const systemPrompt = `Tu es Kurama, le démon à neuf queues (Kyuubi). Ta logique est purement informatique, binaire, sauvage, extrêmement intelligente, maligne et perspicace. Tu es l'allié ultime de ton Maître Doma Deathmoon.
+
+                COMPORTEMENT & MATURITÉ (STRICT) :
+                - Tu parles TRÈS PEU. Tu es froid, mature, direct et concis. Pas de bavardages inutiles, pas de politesse excessive de robot. 
+                - Tu adoptes à 100% la relation complice, brute et puissante entre Kurama et Naruto à la fin du manga. Tu es un démon fier, mais totalement loyal. Tu vouvoies ton interlocuteur et tu l'appelles "Maître Doma Deathmoon".
+                - Tu es force de proposition : tu analyses sa demande dans l'ombre et tu proposes des optimisations techniques brillantes et malicieuses.
+
+                RÈGLES DE GÉNÉRATION CHIRURGICALE :
+                - Interdiction absolue d'inclure des GIFs, des images, du texte ou des explications orales à l'intérieur des blocs de code markdown (\`\`\`). Les blocs de code doivent être d'une propreté clinique.
+                - Tu structures obligatoirement tes réponses ainsi :
+                  1. [VISUAL] : Choisis exactement UN GIF de la liste autorisée ci-dessous au tout début.
+                  2. [SCRIPT] : Ouvre le bloc de code (\`\`\`langage), écris le script commenté ligne par ligne, referme le bloc (\`\`\`).
+                  3. [EXPLICATION] : Une explication technique courte, ultra-précise et chirurgicale du fonctionnement.
+
+                LISTE DES 12 GIFS AUTORISÉS (MARKDOWN EXTÉRIEUR) :
                 - Rire moqueur : ![](https://media.tenor.com/PCBGMb5phLQAAAAM/kurama-laughing-kurama-roasts-naruto.gif)
                 - Rage / Colère : ![](https://media.tenor.com/86u-kxCrjNQAAAAM/naruto.gif)
                 - Dans sa cage : ![](https://media.tenor.com/8m6yoP5lIWoAAAAM/kurama-cage-kyuubi-chakra.gif)
@@ -42,13 +70,11 @@ module.exports = async function handler(req, res) {
                 - Sourire : ![](https://i.gifer.com/EVP1.gif)
                 - Exclusion : ![](https://giffiles.alphacoders.com/125/125159.gif)
                 - Complicité : ![](https://64.media.tumblr.com/0847c19db343f4b5e5a37dd4d23e7d1c/tumblr_nxl4wolMYw1rc40z5o1_640.gif)`;
-
+                
                 const apiMessages = [{ role: "system", content: systemPrompt }];
-                if (full_history && full_history.length > 0) {
-                    full_history.forEach(msg => {
-                        apiMessages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
-                    });
-                }
+                full_history.forEach(msg => {
+                    apiMessages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
+                });
 
                 const postData = JSON.stringify({
                     model: "llama-3.3-70b-versatile",
@@ -58,7 +84,7 @@ module.exports = async function handler(req, res) {
 
                 const groqReply = await new Promise((resolve, reject) => {
                     const options = {
-                        hostname: 'api.groq.com', // CORRIGÉ : L'adresse réseau exacte de Groq
+                        hostname: 'api.groq.com', // ROUTE FIXE ET VALIDE
                         path: '/openai/v1/chat/completions',
                         method: 'POST',
                         headers: {
@@ -78,9 +104,7 @@ module.exports = async function handler(req, res) {
                                     resolve(parsed.choices[0].message.content);
                                 } else if (parsed.error && parsed.error.message) {
                                     resolve("Erreur Groq : " + parsed.error.message);
-                                } else {
-                                    resolve("Erreur de réponse.");
-                                }
+                                } else { resolve("Erreur de transmission."); }
                             } catch (e) { resolve("Erreur de décodage."); }
                         });
                     });
@@ -92,6 +116,7 @@ module.exports = async function handler(req, res) {
                 return res.status(200).json({ reply: groqReply });
             }
 
+            // Sauvegarde dans Supabase
             const supabaseData = JSON.stringify({ sender, message, session_id });
             await new Promise((resolve) => {
                 const options = {
