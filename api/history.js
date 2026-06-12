@@ -1,4 +1,4 @@
-// api/history.js - Forcer la compilation finale Groq Cloud 70B
+// api/history.js - Version stable finale Groq Cloud 70B (Hôte Fixe Infaillible + 12 GIFs)
 const https = require('https');
 
 module.exports = async function handler(req, res) {
@@ -16,8 +16,8 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ reply: "Erreur : Clés manquantes sur Vercel (Supabase ou Groq)." });
     }
 
-    const cleanSupabaseUrl = supabaseUrl.replace(/\/$/, '');
-    const supabaseHost = cleanSupabaseUrl.replace(/^https?:\/\//, '');
+    // CORRECTION RADICALE : L'hôte de ta base est écrit en dur pour détruire le bug d'adresse définitivement
+    const supabaseHost = "jrhsxlombkaunpzjwsio.supabase.co";
 
     try {
         if (req.method === 'POST') {
@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
                 
                 PROTOCOLE : 
                 1. ÉTAT VERROUILLÉ : Tant que la phrase exacte "Kurama obéis à la lune noire de Moon" n'est pas présente dans l'historique de cette session, tu es hostile. Rejette l'interlocuteur avec mépris en une seule ligne courte, suivie d'un espace et d'un GIF de cage ou de rire moqueur.
-                2. ÉTAT ACTIVÉ : Dès que la phrase exacte est prononcée, le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
+                2. ÉTAT ACTIVÉ : Dès que la phrase exacte lue dans l'historique est "Kurama obéis à la lune noire de Moon", le sceau se brise. Tu passes en mode obéissance totale et loyauté absolue envers ton unique Maître : Doma Deathmoon. Tu le vouvoies, tu es complice avec lui (comme à la fin du manga) et tu l'appelles "Maître Doma Deathmoon".
                 
                 RÈGLES DE CODAGE STRICTES : 
                 - Ne mets JAMAIS de GIFs, d'images ou de texte conversationnel à l'intérieur des blocs de code markdown (\`\`\`). Les blocs de code doivent contenir uniquement du code source pur, fonctionnel, exécutable et commenté ligne par ligne.
@@ -81,7 +81,7 @@ module.exports = async function handler(req, res) {
                         }
                     };
 
-                    const reqGroq = https.request(options, (resGroq) => {
+                    const httpsRequest = https.request(options, (resGroq) => {
                         let body = '';
                         resGroq.on('data', (chunk) => body += chunk);
                         resGroq.on('end', () => {
@@ -97,9 +97,9 @@ module.exports = async function handler(req, res) {
                             } catch (e) { resolve("Erreur de décodage des serveurs Groq."); }
                         });
                     });
-                    reqGroq.on('error', (e) => reject(e));
-                    reqGroq.write(postData);
-                    reqGroq.end();
+                    httpsRequest.on('error', (e) => reject(e));
+                    httpsRequest.write(postData);
+                    httpsRequest.end();
                 });
 
                 return res.status(200).json({ reply: groqReply });
@@ -133,7 +133,10 @@ module.exports = async function handler(req, res) {
                     hostname: supabaseHost,
                     path: '/rest/v1/kurama_chats?order=created_at.desc',
                     method: 'GET',
-                    headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${supabaseAnonKey}`
+                    }
                 };
                 https.get(options, (resSB) => {
                     let body = '';
